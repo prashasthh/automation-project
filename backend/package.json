@@ -1,0 +1,27 @@
+{
+  "name": "adforge-backend",
+  "version": "1.0.0",
+  "description": "AdForge backend — Fastify + Apify + KIE AI",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "npx tsx watch src/index.ts",
+    "start": "npx tsx src/index.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.0",
+    "@fastify/static": "^8.0.0",
+    "@types/archiver": "^8.0.0",
+    "archiver": "^8.0.0",
+    "dotenv": "^16.4.5",
+    "fastify": "^5.2.1",
+    "pino-pretty": "^11.2.1",
+    "sharp": "^0.33.4",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.15.7",
+    "typescript": "^5.4.5"
+  }
+}

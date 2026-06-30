@@ -1,0 +1,65 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
+import Fastify from 'fastify';
+import cors from '@fastify/cors';
+import staticPlugin from '@fastify/static';
+import path from 'path';
+import fs from 'fs';
+
+import searchesRoutes from './routes/searches';
+import generateRoutes from './routes/generate';
+import iterateRoutes from './routes/iterate';
+import callbackRoutes from './routes/callback';
+import insightsRoutes from './routes/insights';
+import exportRoutes from './routes/export';
+
+const PORT = parseInt(process.env.PORT ?? '3001', 10);
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const server = Fastify({
+  logger: {
+    transport: {
+      target: 'pino-pretty',
+      options: { colorize: true, translateTime: 'SYS:HH:MM:ss', ignore: 'pid,hostname' },
+    },
+  },
+});
+
+async function bootstrap() {
+  // CORS — allow frontend dev server
+  await server.register(cors, {
+    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
+  // Serve generated images
+  await server.register(staticPlugin, {
+    root: uploadsDir,
+    prefix: '/uploads/',
+  });
+
+  // Health check
+  server.get('/api/health', async () => ({ ok: true, ts: Date.now() }));
+
+  // Routes
+  await server.register(searchesRoutes, { prefix: '/api' });
+  await server.register(generateRoutes, { prefix: '/api' });
+  await server.register(iterateRoutes, { prefix: '/api' });
+  await server.register(callbackRoutes, { prefix: '/api' });
+  await server.register(insightsRoutes, { prefix: '/api' });
+  await server.register(exportRoutes, { prefix: '/api' });
+
+  await server.listen({ port: PORT, host: '0.0.0.0' });
+  console.log(`\n🔥 AdForge backend running at http://localhost:${PORT}\n`);
+}
+
+bootstrap().catch((err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
+});
