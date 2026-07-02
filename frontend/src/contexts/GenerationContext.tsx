@@ -58,6 +58,9 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
       if (r.status === 'generating') {
         if (now - r.timestamp > EXPIRE_MS) {
           updateGeneratedRecord(r.id, { status: 'failed' });
+        } else {
+          // Resume polling!
+          startPolling(r.id, r.sourceAdId, r.sourceMeta, r.parentId, r.batchId, r.styleVariant, true);
         }
       }
     }
@@ -87,23 +90,34 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
       sourceMeta?: GeneratedRecord['sourceMeta'],
       parentId?: string,
       batchId?: string,
-      styleVariant?: GeneratedRecord['styleVariant']
+      styleVariant?: GeneratedRecord['styleVariant'],
+      isResume = false
     ) => {
-      // Create placeholder record immediately
-      const placeholder: GeneratedRecord = {
-        id,
-        sourceAdId,
-        sourceMeta,
-        status: 'generating',
-        parentId,
-        timestamp: Date.now(),
-        batchId,
-        styleVariant,
-      };
-      saveGeneratedRecord(placeholder);
-      setRecords(getGeneratedRecords());
-
-      attempts.current.set(id, 0);
+      if (!isResume) {
+        // Create placeholder record immediately
+        const placeholder: GeneratedRecord = {
+          id,
+          sourceAdId,
+          sourceMeta,
+          status: 'generating',
+          parentId,
+          timestamp: Date.now(),
+          batchId,
+          styleVariant,
+        };
+        saveGeneratedRecord(placeholder);
+        setRecords(getGeneratedRecords());
+        attempts.current.set(id, 0);
+      } else {
+        // If resuming, estimate attempts based on time elapsed
+        const existing = getGeneratedRecords().find(r => r.id === id);
+        if (existing) {
+          const elapsed = Date.now() - existing.timestamp;
+          attempts.current.set(id, Math.floor(elapsed / POLL_INTERVAL));
+        } else {
+          attempts.current.set(id, 0);
+        }
+      }
 
       const interval = setInterval(async () => {
         const attempt = (attempts.current.get(id) ?? 0) + 1;

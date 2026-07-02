@@ -8,20 +8,23 @@ import type { BrandCtx } from '../services/kie-prompter';
 interface IterateBody {
   instruction: string;
   parentId: string;
+  parentImageUrl?: string;
   brand: BrandCtx;
 }
 
 const iterateRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/iterate', async (request, reply) => {
-    const { instruction, parentId, brand } = request.body as IterateBody;
+    const { instruction, parentId, parentImageUrl, brand } = request.body as IterateBody;
 
     if (!instruction?.trim()) {
       return reply.code(400).send({ error: 'instruction is required' });
     }
 
     const parentTask = tasks.get(parentId);
-    if (!parentTask || !parentTask.imageUrl) {
-      return reply.code(400).send({ error: 'Parent generation not found or not complete' });
+    const resolvedImageUrl = parentTask?.imageUrl || parentImageUrl;
+
+    if (!resolvedImageUrl) {
+      return reply.code(400).send({ error: 'Parent image not found' });
     }
 
     const generationId = uuidv4();
@@ -38,7 +41,7 @@ const iterateRoutes: FastifyPluginAsync = async (fastify) => {
     const publicBaseUrl = process.env.PUBLIC_BASE_URL;
     const isPublicUrl =
       publicBaseUrl &&
-      parentTask.imageUrl.startsWith(publicBaseUrl);
+      resolvedImageUrl.startsWith(publicBaseUrl);
 
     (async () => {
       const task = tasks.get(generationId);
@@ -48,7 +51,7 @@ const iterateRoutes: FastifyPluginAsync = async (fastify) => {
         task.status = 'running';
 
         const adForIterate = {
-          imageUrl: parentTask.imageUrl!,
+          imageUrl: resolvedImageUrl,
           daysActive: 0,
         };
 
@@ -58,11 +61,11 @@ const iterateRoutes: FastifyPluginAsync = async (fastify) => {
           style_notes: `Iteration of generation ${parentId}`,
         };
 
-        const imageInputs = isPublicUrl ? [parentTask.imageUrl!] : [];
+        const imageInputs = isPublicUrl ? [resolvedImageUrl] : [];
 
         const kieTaskId = await createImageTask(
           brief,
-          { ...adForIterate, imageUrl: isPublicUrl ? parentTask.imageUrl! : '' },
+          { ...adForIterate, imageUrl: isPublicUrl ? resolvedImageUrl : '' },
           brand ?? {},
           publicBaseUrl
         );

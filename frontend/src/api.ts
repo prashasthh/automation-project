@@ -92,9 +92,10 @@ export function pollGenerate(generationId: string): Promise<PollGenerateResponse
 export function startIterate(
   instruction: string,
   parentId: string,
-  brand: BrandInput
+  brand: BrandInput,
+  parentImageUrl?: string
 ): Promise<StartIterateResponse> {
-  return post('/api/iterate', { instruction, parentId, brand });
+  return post('/api/iterate', { instruction, parentId, brand, parentImageUrl });
 }
 
 // ─── Insights ─────────────────────────────────────────────────────────────────

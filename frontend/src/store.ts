@@ -1,5 +1,20 @@
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export interface Collection {
+  id: string;
+  name: string;
+  createdAt: number;
+}
+
+export interface CollectionItem {
+  id: string;
+  collectionId: string;
+  addedAt: number;
+  type: 'generated' | 'inspiration';
+  generatedRecordId?: string;
+  inspirationAd?: WinningAd;
+}
+
 export interface BrandInput {
   brandName?: string;
   usp?: string;
@@ -145,4 +160,73 @@ export function saveSearch(search: SavedSearch): void {
 export function deleteSavedSearch(id: string): void {
   const searches = getSavedSearches().filter((s) => s.id !== id);
   localStorage.setItem(SEARCH_KEY, JSON.stringify(searches));
+}
+
+// ─── Collections ──────────────────────────────────────────────────────────────
+
+const COL_KEY = 'ad_remaker_collections';
+const COL_ITEMS_KEY = 'ad_remaker_collection_items';
+
+export function getCollections(): Collection[] {
+  try {
+    return JSON.parse(localStorage.getItem(COL_KEY) ?? '[]');
+  } catch {
+    return [];
+  }
+}
+
+export function saveCollection(collection: Collection): void {
+  const collections = getCollections();
+  collections.push(collection);
+  localStorage.setItem(COL_KEY, JSON.stringify(collections));
+}
+
+export function deleteCollection(id: string): void {
+  const collections = getCollections().filter((c) => c.id !== id);
+  localStorage.setItem(COL_KEY, JSON.stringify(collections));
+  
+  // Cascade delete items
+  const items = getCollectionItems().filter((i) => i.collectionId !== id);
+  localStorage.setItem(COL_ITEMS_KEY, JSON.stringify(items));
+}
+
+export function getCollectionItems(): CollectionItem[] {
+  try {
+    return JSON.parse(localStorage.getItem(COL_ITEMS_KEY) ?? '[]');
+  } catch {
+    return [];
+  }
+}
+
+export function toggleAdInCollection(
+  collectionId: string,
+  adId: string,
+  type: 'generated' | 'inspiration',
+  inspirationAd?: WinningAd
+): void {
+  const items = getCollectionItems();
+  
+  // Check if it already exists
+  const existingIdx = items.findIndex(
+    (i) => i.collectionId === collectionId && 
+           i.type === type && 
+           (type === 'generated' ? i.generatedRecordId === adId : i.inspirationAd?.id === adId)
+  );
+
+  if (existingIdx >= 0) {
+    // Remove it
+    items.splice(existingIdx, 1);
+  } else {
+    // Add it
+    items.push({
+      id: Math.random().toString(36).substring(2, 15),
+      collectionId,
+      addedAt: Date.now(),
+      type,
+      generatedRecordId: type === 'generated' ? adId : undefined,
+      inspirationAd: type === 'inspiration' ? inspirationAd : undefined,
+    });
+  }
+  
+  localStorage.setItem(COL_ITEMS_KEY, JSON.stringify(items));
 }

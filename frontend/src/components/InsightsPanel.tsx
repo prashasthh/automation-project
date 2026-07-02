@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { AdInsights } from '../api';
 import type { WinningAd } from '../store';
+import CollectionModal from './CollectionModal';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -139,132 +140,152 @@ export default function InsightsPanel({
   isRemakingLoading,
   onClose,
 }: InsightsPanelProps) {
+  const [showCollections, setShowCollections] = useState(false);
+
   return (
-    <div className="flex flex-col h-full bg-white border border-zinc-100 rounded-2xl shadow-lg overflow-hidden animate-slide-up">
-      {/* Panel header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-zinc-50">
-        <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Selected Ad</p>
-          <p className="text-sm font-bold text-zinc-900 font-display truncate mt-0.5">
-            {ad.advertiserName}
-          </p>
+    <>
+      <div className="flex flex-col h-full bg-white border border-zinc-100 rounded-2xl shadow-lg overflow-hidden animate-slide-up">
+        {/* Panel header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-zinc-50">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Selected Ad</p>
+            <p className="text-sm font-bold text-zinc-900 font-display truncate mt-0.5">
+              {ad.advertiserName}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+              <span className="text-emerald-500">●</span>
+              {ad.daysActive}d running
+            </span>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200 rounded-lg transition-colors"
+              title="Deselect ad"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-            <span className="text-emerald-500">●</span>
-            {ad.daysActive}d running
-          </span>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto">
+          {isLoading && <InsightsSkeleton />}
+
+          {error && !isLoading && (
+            <div className="p-5 flex flex-col items-center text-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+                <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-zinc-700">Insights failed to load</p>
+                <p className="text-xs text-zinc-400 mt-0.5">{error}</p>
+              </div>
+              <button
+                onClick={onRetry}
+                className="px-4 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {insights && !isLoading && (
+            <div className="p-5 space-y-5">
+              {/* Core info chips */}
+              <div className="grid grid-cols-2 gap-4">
+                {insights.headline && (
+                  <div className="col-span-2">
+                    <InsightChip label="Headline" value={insights.headline} />
+                  </div>
+                )}
+                {insights.mainOffer && (
+                  <div className="col-span-2">
+                    <InsightChip label="Main Offer" value={insights.mainOffer} />
+                  </div>
+                )}
+                <InsightChip label="Brand" value={insights.brandName} />
+                <InsightChip label="CTA" value={insights.cta} />
+                <InsightChip label="Visual Style" value={insights.visualStyle} />
+                <InsightChip label="Layout" value={insights.productLayout} />
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-zinc-100" />
+
+              {/* Color palette */}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2.5">
+                  Color Palette
+                </p>
+                <div className="space-y-2">
+                  {insights.colorPalette.slice(0, 3).map((hex, i) => (
+                    <ColorSwatch key={i} hex={hex} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-zinc-100" />
+
+              {/* Why it's working */}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">
+                  Why It's Probably Working
+                </p>
+                <p className="text-sm text-zinc-700 leading-relaxed">{insights.whyWorking}</p>
+              </div>
+
+              {/* Creative Breakdown */}
+              {insights.creativeBreakdown && (
+                <CreativeBreakdown breakdown={insights.creativeBreakdown} />
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Action footer */}
+        <div className="px-5 py-4 border-t border-zinc-100 bg-zinc-50 flex gap-2">
           <button
-            onClick={onClose}
-            className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200 rounded-lg transition-colors"
-            title="Deselect ad"
+            onClick={() => setShowCollections(true)}
+            className="flex-shrink-0 px-4 py-2.5 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-sm font-semibold rounded-xl transition-all shadow-sm flex items-center justify-center"
+            title="Save to Collection"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
             </svg>
+          </button>
+          
+          <button
+            id="btn-remake-from-panel"
+            onClick={onRemake}
+            disabled={isRemakingLoading}
+            className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-all duration-150 flex items-center justify-center gap-2 shadow-md shadow-indigo-200"
+          >
+            {isRemakingLoading ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            )}
+            Remake This Ad →
           </button>
         </div>
       </div>
-
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto">
-        {isLoading && <InsightsSkeleton />}
-
-        {error && !isLoading && (
-          <div className="p-5 flex flex-col items-center text-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
-              <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-zinc-700">Insights failed to load</p>
-              <p className="text-xs text-zinc-400 mt-0.5">{error}</p>
-            </div>
-            <button
-              onClick={onRetry}
-              className="px-4 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
-            >
-              Try again
-            </button>
-          </div>
-        )}
-
-        {insights && !isLoading && (
-          <div className="p-5 space-y-5">
-            {/* Core info chips */}
-            <div className="grid grid-cols-2 gap-4">
-              {insights.headline && (
-                <div className="col-span-2">
-                  <InsightChip label="Headline" value={insights.headline} />
-                </div>
-              )}
-              {insights.mainOffer && (
-                <div className="col-span-2">
-                  <InsightChip label="Main Offer" value={insights.mainOffer} />
-                </div>
-              )}
-              <InsightChip label="Brand" value={insights.brandName} />
-              <InsightChip label="CTA" value={insights.cta} />
-              <InsightChip label="Visual Style" value={insights.visualStyle} />
-              <InsightChip label="Layout" value={insights.productLayout} />
-            </div>
-
-            {/* Divider */}
-            <div className="border-t border-zinc-100" />
-
-            {/* Color palette */}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2.5">
-                Color Palette
-              </p>
-              <div className="space-y-2">
-                {insights.colorPalette.slice(0, 3).map((hex, i) => (
-                  <ColorSwatch key={i} hex={hex} />
-                ))}
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="border-t border-zinc-100" />
-
-            {/* Why it's working */}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">
-                Why It's Probably Working
-              </p>
-              <p className="text-sm text-zinc-700 leading-relaxed">{insights.whyWorking}</p>
-            </div>
-
-            {/* Creative Breakdown */}
-            {insights.creativeBreakdown && (
-              <CreativeBreakdown breakdown={insights.creativeBreakdown} />
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Action footer */}
-      <div className="px-5 py-4 border-t border-zinc-100 bg-zinc-50">
-        <button
-          id="btn-remake-from-panel"
-          onClick={onRemake}
-          disabled={isRemakingLoading}
-          className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-all duration-150 flex items-center justify-center gap-2 shadow-md shadow-indigo-200"
-        >
-          {isRemakingLoading ? (
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          )}
-          Remake This Ad →
-        </button>
-        <p className="text-center text-[11px] text-zinc-400 mt-2">
-          AI will replicate the formula for your brand
-        </p>
-      </div>
-    </div>
+      
+      {showCollections && (
+        <CollectionModal
+          adId={ad.id}
+          adType="inspiration"
+          inspirationAd={ad}
+          onClose={() => setShowCollections(false)}
+        />
+      )}
+    </>
   );
 }

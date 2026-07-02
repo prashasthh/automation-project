@@ -1,26 +1,23 @@
 import type { FastifyPluginAsync } from 'fastify';
 import path from 'path';
 import fs from 'fs';
-const archiver = require('archiver');
+import { ZipArchive } from 'archiver';
 import { tasks } from '../services/tasks';
 
 const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
 
 const exportRoutes: FastifyPluginAsync = async (fastify) => {
-  // GET /api/export/:generationId — download a ZIP package
-  fastify.get('/export/:generationId', async (request, reply) => {
+  // POST /api/export/:generationId — download a ZIP package
+  fastify.post('/export/:generationId', async (request, reply) => {
     const { generationId } = request.params as { generationId: string };
+    const record = request.body as any;
 
-    const task = tasks.get(generationId);
-    if (!task) {
-      return reply.code(404).send({ error: 'Generation not found' });
-    }
-    if (task.status !== 'done' || !task.imageUrl) {
-      return reply.code(400).send({ error: 'Generation not complete yet' });
+    if (!record || !record.imageUrl) {
+      return reply.code(400).send({ error: 'Invalid record or missing image URL' });
     }
 
     // Extract local filename from the URL (e.g. http://localhost:3001/uploads/abc.png → abc.png)
-    const urlPath = new URL(task.imageUrl).pathname; // /uploads/filename.ext
+    const urlPath = new URL(record.imageUrl).pathname; // /uploads/filename.ext
     const filename = path.basename(urlPath);
     const imagePath = path.join(uploadsDir, filename);
 
@@ -30,8 +27,8 @@ const exportRoutes: FastifyPluginAsync = async (fastify) => {
 
     const metadata = {
       generationId,
-      styleVariant: task.styleVariant ?? 'default',
-      generatedAt: new Date(task.createdAt).toISOString(),
+      styleVariant: record.styleVariant ?? 'default',
+      generatedAt: new Date(record.timestamp || Date.now()).toISOString(),
       exportedAt: new Date().toISOString(),
     };
 
@@ -44,15 +41,15 @@ const exportRoutes: FastifyPluginAsync = async (fastify) => {
     );
 
     // Stream ZIP directly to response
-    const archive = archiver('zip', { zlib: { level: 6 } });
+    const archive = new ZipArchive({ zlib: { level: 6 } });
     archive.pipe(reply.raw);
 
     // 1. Generated image
     archive.file(imagePath, { name: `ad${path.extname(filename)}` });
 
     // 2. AI Prompt
-    if (task.promptUsed) {
-      archive.append(task.promptUsed, { name: 'prompt.txt' });
+    if (record.promptUsed) {
+      archive.append(record.promptUsed, { name: 'prompt.txt' });
     }
 
     // 3. Metadata JSON
@@ -63,7 +60,7 @@ const exportRoutes: FastifyPluginAsync = async (fastify) => {
       `AdForge Export Package`,
       `======================`,
       `Generation ID : ${generationId}`,
-      `Style Variant : ${task.styleVariant ?? 'default'}`,
+      `Style Variant : ${record.styleVariant ?? 'default'}`,
       `Generated At  : ${metadata.generatedAt}`,
       `Exported At   : ${metadata.exportedAt}`,
       ``,

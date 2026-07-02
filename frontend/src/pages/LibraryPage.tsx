@@ -6,10 +6,17 @@ import {
   getBrand,
   deleteGeneratedRecord,
   toggleFavorite,
+  getCollections,
+  getCollectionItems,
   type GeneratedRecord,
+  type Collection,
+  type CollectionItem,
+  type WinningAd,
 } from '../store';
 import { startIterate } from '../api';
 import GeneratedAdCard from '../components/GeneratedAdCard';
+import AdCard from '../components/AdCard';
+import CollectionModal from '../components/CollectionModal';
 
 // ─── Filter Bar ────────────────────────────────────────────────────────────────
 
@@ -21,6 +28,9 @@ interface FilterBarProps {
   brands: string[];
   brand: string;
   onBrand: (v: string) => void;
+  collections: Collection[];
+  collectionFilter: string;
+  onCollection: (v: string) => void;
   dateFilter: DateFilter;
   onDate: (v: DateFilter) => void;
   favoritesOnly: boolean;
@@ -31,6 +41,7 @@ interface FilterBarProps {
 
 function FilterBar({
   search, onSearch, brands, brand, onBrand,
+  collections, collectionFilter, onCollection,
   dateFilter, onDate, favoritesOnly, onFavoritesOnly,
   totalShown, totalAll,
 }: FilterBarProps) {
@@ -62,6 +73,21 @@ function FilterBar({
           <option value="">All brands</option>
           {brands.map((b) => (
             <option key={b} value={b}>{b}</option>
+          ))}
+        </select>
+      )}
+
+      {/* Collection filter */}
+      {collections.length > 0 && (
+        <select
+          id="library-filter-collection"
+          value={collectionFilter}
+          onChange={(e) => onCollection(e.target.value)}
+          className="px-3 py-2 text-sm rounded-lg border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-zinc-700 cursor-pointer"
+        >
+          <option value="">All Collections</option>
+          {collections.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
       )}
@@ -106,7 +132,7 @@ function FilterBar({
   );
 }
 
-// ─── Lightbox ─────────────────────────────────────────────────────────────────
+// ─── Lightboxes ───────────────────────────────────────────────────────────────
 
 interface LightboxProps {
   record: GeneratedRecord;
@@ -114,10 +140,12 @@ interface LightboxProps {
   onIterate: (record: GeneratedRecord) => void;
   onDelete: (id: string) => void;
   onFavorite: (id: string) => void;
+  onRefreshCollections: () => void;
 }
 
-function Lightbox({ record, onClose, onIterate, onDelete, onFavorite }: LightboxProps) {
+function Lightbox({ record, onClose, onIterate, onDelete, onFavorite, onRefreshCollections }: LightboxProps) {
   const toast = useToast();
+  const [showCollections, setShowCollections] = useState(false);
   const hasSource = !!record.sourceMeta?.imageUrl;
 
   useEffect(() => {
@@ -128,15 +156,46 @@ function Lightbox({ record, onClose, onIterate, onDelete, onFavorite }: Lightbox
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  const handleExport = () => {
-    const url = `/api/export/${record.id}`;
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `adforge-${record.id.slice(0, 8)}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    toast.success('Export started — check your Downloads folder');
+  const handleExport = async () => {
+    try {
+      const res = await fetch(`/api/export/${record.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(record)
+      });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `adforge-${record.id.slice(0, 8)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Export downloaded successfully');
+    } catch (err) {
+      toast.error('Failed to export ZIP');
+    }
+  };
+
+  const handleDownloadImage = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!record.imageUrl) return;
+    try {
+      const res = await fetch(record.imageUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ad-${record.id.slice(0, 8)}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(record.imageUrl, '_blank');
+    }
   };
 
   return (
@@ -169,6 +228,17 @@ function Lightbox({ record, onClose, onIterate, onDelete, onFavorite }: Lightbox
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Save to Collection */}
+            <button
+              onClick={() => setShowCollections(true)}
+              className="px-3 py-1.5 text-sm font-semibold text-zinc-700 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors flex items-center gap-1.5"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+              Collections
+            </button>
+
             {/* Favorite */}
             <button
               id="btn-lightbox-favorite"
@@ -195,17 +265,16 @@ function Lightbox({ record, onClose, onIterate, onDelete, onFavorite }: Lightbox
 
             {/* Download */}
             {record.imageUrl && (
-              <a
-                href={record.imageUrl}
-                download
+              <button
                 id="btn-lightbox-download"
+                onClick={handleDownloadImage}
                 className="px-3 py-1.5 text-sm font-semibold text-zinc-700 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors flex items-center gap-1.5"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 Image
-              </a>
+              </button>
             )}
 
             {/* Export Package */}
@@ -317,6 +386,104 @@ function Lightbox({ record, onClose, onIterate, onDelete, onFavorite }: Lightbox
           </div>
         )}
       </div>
+      
+      {showCollections && (
+        <CollectionModal
+          adId={record.id}
+          adType="generated"
+          onClose={() => {
+            setShowCollections(false);
+            onRefreshCollections();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function InspirationLightbox({ ad, onClose, onRefreshCollections }: { ad: WinningAd; onClose: () => void; onRefreshCollections: () => void }) {
+  const [showCollections, setShowCollections] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slide-up"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
+          <div>
+            <h2 className="font-bold font-display text-zinc-900">
+              {ad.advertiserName}
+            </h2>
+            <p className="text-xs text-zinc-500 font-mono mt-0.5">
+              Inspiration Ad
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowCollections(true)}
+              className="px-3 py-1.5 text-sm font-semibold text-zinc-700 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors flex items-center gap-1.5"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+              Collections
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6">
+           <img
+             src={ad.imageUrl}
+             alt="Competitor inspiration ad"
+             className="w-full rounded-xl border border-zinc-100 shadow-card mb-6"
+           />
+           <div className="space-y-4 bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+             <div>
+               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Headline</p>
+               <p className="text-sm font-semibold text-zinc-800">{ad.headline || 'N/A'}</p>
+             </div>
+             <div>
+               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Ad Copy</p>
+               <p className="text-sm text-zinc-700">{ad.adCopy || 'N/A'}</p>
+             </div>
+             <div>
+               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">CTA</p>
+               <p className="text-sm font-semibold text-zinc-800">{ad.cta || 'N/A'}</p>
+             </div>
+           </div>
+        </div>
+      </div>
+      {showCollections && (
+        <CollectionModal
+          adId={ad.id}
+          adType="inspiration"
+          inspirationAd={ad}
+          onClose={() => {
+            setShowCollections(false);
+            onRefreshCollections();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -340,7 +507,7 @@ function IterateModal({ record, onClose }: IterateModalProps) {
     setIsLoading(true);
     try {
       const brand = getBrand();
-      const { generationId } = await startIterate(instruction, record.id, brand);
+      const { generationId } = await startIterate(instruction, record.id, brand, record.imageUrl);
       startPolling(generationId, record.sourceAdId, record.sourceMeta, record.id);
       toast.info('Iteration started — check the Queue');
       onClose();
@@ -414,15 +581,25 @@ export default function LibraryPage() {
   const navigate = useNavigate();
 
   const [lightboxRecord, setLightboxRecord] = useState<GeneratedRecord | null>(null);
+  const [inspirationLightboxAd, setInspirationLightboxAd] = useState<WinningAd | null>(null);
   const [iterateRecord, setIterateRecord] = useState<GeneratedRecord | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Filter state
   const [search, setSearch] = useState('');
   const [brandFilter, setBrandFilter] = useState('');
+  const [collectionFilter, setCollectionFilter] = useState('');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
 
   const doneRecords = records.filter((r) => r.status === 'done');
+
+  const collections = useMemo(() => getCollections(), [refreshTrigger]);
+  const collectionItems = useMemo(() => getCollectionItems(), [refreshTrigger]);
+
+  const handleRefreshCollections = useCallback(() => {
+    setRefreshTrigger(v => v + 1);
+  }, []);
 
   // Unique brand names for the filter dropdown
   const brands = useMemo(() => {
@@ -434,26 +611,64 @@ export default function LibraryPage() {
   }, [doneRecords]);
 
   // Apply all filters
-  const filteredRecords = useMemo(() => {
+  const filteredItems = useMemo(() => {
     const now = Date.now();
-    return doneRecords.filter((r) => {
-      // Search
-      if (search) {
-        const q = search.toLowerCase();
-        const name = (r.sourceMeta?.advertiserName ?? '').toLowerCase();
-        const prompt = (r.promptUsed ?? '').toLowerCase();
-        if (!name.includes(q) && !prompt.includes(q)) return false;
+    let baseItems: Array<{ id: string; type: 'generated' | 'inspiration'; record?: GeneratedRecord; ad?: WinningAd; timestamp: number }> = [];
+
+    if (collectionFilter) {
+      // Only items in this collection
+      const itemsInCol = collectionItems.filter((i) => i.collectionId === collectionFilter);
+      itemsInCol.forEach((item) => {
+        if (item.type === 'generated' && item.generatedRecordId) {
+          const r = doneRecords.find((dr) => dr.id === item.generatedRecordId);
+          if (r) baseItems.push({ id: `gen-${r.id}`, type: 'generated', record: r, timestamp: item.addedAt });
+        } else if (item.type === 'inspiration' && item.inspirationAd) {
+          baseItems.push({ id: `insp-${item.inspirationAd.id}`, type: 'inspiration', ad: item.inspirationAd, timestamp: item.addedAt });
+        }
+      });
+      // Sort by addedAt descending
+      baseItems.sort((a, b) => b.timestamp - a.timestamp);
+    } else {
+      // All generated records
+      baseItems = doneRecords.map((r) => ({ id: `gen-${r.id}`, type: 'generated', record: r, timestamp: r.timestamp }));
+    }
+
+    return baseItems.filter((item) => {
+      if (item.type === 'generated' && item.record) {
+        const r = item.record;
+        // Search
+        if (search) {
+          const q = search.toLowerCase();
+          const name = (r.sourceMeta?.advertiserName ?? '').toLowerCase();
+          const prompt = (r.promptUsed ?? '').toLowerCase();
+          if (!name.includes(q) && !prompt.includes(q)) return false;
+        }
+        // Brand
+        if (brandFilter && r.sourceMeta?.advertiserName !== brandFilter) return false;
+        // Date
+        if (dateFilter === 'today' && now - r.timestamp > ONE_DAY) return false;
+        if (dateFilter === 'week' && now - r.timestamp > ONE_WEEK) return false;
+        // Favorites
+        if (favoritesOnly && !r.favorited) return false;
+        return true;
+      } else if (item.type === 'inspiration' && item.ad) {
+        const ad = item.ad;
+        // Search
+        if (search) {
+          const q = search.toLowerCase();
+          const name = (ad.advertiserName ?? '').toLowerCase();
+          const copy = (ad.adCopy ?? '').toLowerCase();
+          if (!name.includes(q) && !copy.includes(q)) return false;
+        }
+        // Brand
+        if (brandFilter && ad.advertiserName !== brandFilter) return false;
+        // Favorites
+        if (favoritesOnly) return false; // Inspiration ads don't have this favorited toggle in this context
+        return true;
       }
-      // Brand
-      if (brandFilter && r.sourceMeta?.advertiserName !== brandFilter) return false;
-      // Date
-      if (dateFilter === 'today' && now - r.timestamp > ONE_DAY) return false;
-      if (dateFilter === 'week' && now - r.timestamp > ONE_WEEK) return false;
-      // Favorites
-      if (favoritesOnly && !r.favorited) return false;
-      return true;
+      return false;
     });
-  }, [doneRecords, search, brandFilter, dateFilter, favoritesOnly]);
+  }, [doneRecords, search, brandFilter, collectionFilter, dateFilter, favoritesOnly, collectionItems]);
 
   const handleDelete = useCallback((id: string) => {
     deleteGeneratedRecord(id);
@@ -472,6 +687,9 @@ export default function LibraryPage() {
     toast.success(record?.favorited ? 'Removed from favorites' : '⭐ Added to favorites');
   }, [records, refreshRecords, lightboxRecord, toast]);
 
+  const hasAnyItems = filteredItems.length > 0;
+  const showEmptyFilterState = !hasAnyItems && (doneRecords.length > 0 || collectionFilter);
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -480,12 +698,10 @@ export default function LibraryPage() {
           <div>
             <h1 className="text-xl font-bold font-display text-zinc-900">Ad Library</h1>
             <p className="text-sm text-zinc-500 mt-0.5">
-              {doneRecords.length > 0
-                ? `${doneRecords.length} generated ad${doneRecords.length !== 1 ? 's' : ''} — click any to compare`
-                : 'Your generated ads will appear here.'}
+              Organize and review your generated and collected inspiration ads.
             </p>
           </div>
-          {doneRecords.length > 0 && (
+          {(doneRecords.length > 0 || collections.length > 0) && (
             <button
               onClick={() => navigate('/')}
               className="px-4 py-2 text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
@@ -497,7 +713,7 @@ export default function LibraryPage() {
       </div>
 
       <div className="flex-1 px-8 py-6">
-        {doneRecords.length > 0 ? (
+        {(doneRecords.length > 0 || collections.length > 0) ? (
           <>
             {/* Filter bar */}
             <FilterBar
@@ -506,28 +722,45 @@ export default function LibraryPage() {
               brands={brands}
               brand={brandFilter}
               onBrand={setBrandFilter}
+              collections={collections}
+              collectionFilter={collectionFilter}
+              onCollection={setCollectionFilter}
               dateFilter={dateFilter}
               onDate={setDateFilter}
               favoritesOnly={favoritesOnly}
               onFavoritesOnly={setFavoritesOnly}
-              totalShown={filteredRecords.length}
-              totalAll={doneRecords.length}
+              totalShown={filteredItems.length}
+              totalAll={collectionFilter ? collectionItems.filter(i => i.collectionId === collectionFilter).length : doneRecords.length}
             />
 
             {/* Grid */}
-            {filteredRecords.length > 0 ? (
+            {hasAnyItems ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 animate-slide-up">
-                {filteredRecords.map((record) => (
-                  <GeneratedAdCard
-                    key={record.id}
-                    record={record}
-                    onClick={() => setLightboxRecord(record)}
-                    onFavorite={handleFavorite}
-                    onDelete={handleDelete}
-                  />
-                ))}
+                {filteredItems.map((item) => {
+                  if (item.type === 'generated' && item.record) {
+                    return (
+                      <GeneratedAdCard
+                        key={item.id}
+                        record={item.record}
+                        onClick={() => setLightboxRecord(item.record!)}
+                        onFavorite={handleFavorite}
+                        onDelete={handleDelete}
+                      />
+                    );
+                  } else if (item.type === 'inspiration' && item.ad) {
+                    return (
+                      <AdCard
+                        key={item.id}
+                        ad={item.ad}
+                        selected={false}
+                        onSelect={() => setInspirationLightboxAd(item.ad!)}
+                      />
+                    );
+                  }
+                  return null;
+                })}
               </div>
-            ) : (
+            ) : showEmptyFilterState ? (
               // Empty filter state
               <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
                 <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mb-4">
@@ -536,15 +769,15 @@ export default function LibraryPage() {
                   </svg>
                 </div>
                 <p className="text-zinc-700 font-semibold font-display">No ads match your filters</p>
-                <p className="text-sm text-zinc-400 mt-1">Try clearing filters or searching something else.</p>
+                <p className="text-sm text-zinc-400 mt-1">Try clearing filters or selecting a different collection.</p>
                 <button
-                  onClick={() => { setSearch(''); setBrandFilter(''); setDateFilter('all'); setFavoritesOnly(false); }}
+                  onClick={() => { setSearch(''); setBrandFilter(''); setCollectionFilter(''); setDateFilter('all'); setFavoritesOnly(false); }}
                   className="mt-4 px-4 py-1.5 text-sm font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
                 >
                   Clear all filters
                 </button>
               </div>
-            )}
+            ) : null}
           </>
         ) : (
           // Empty library state
@@ -556,7 +789,7 @@ export default function LibraryPage() {
             </div>
             <p className="text-zinc-800 font-bold font-display text-2xl tracking-tight">Your library is empty</p>
             <p className="text-zinc-500 mt-2 max-w-sm leading-relaxed">
-              Generate your first high-converting ad by finding a winning competitor ad and clicking Remake.
+              Generate your first high-converting ad or save some inspiration ads to a collection.
             </p>
             <button
               onClick={() => navigate('/')}
@@ -571,7 +804,7 @@ export default function LibraryPage() {
         )}
       </div>
 
-      {/* Lightbox */}
+      {/* Lightbox for Generated Record */}
       {lightboxRecord && (
         <Lightbox
           record={lightboxRecord}
@@ -579,6 +812,16 @@ export default function LibraryPage() {
           onIterate={(r) => { setLightboxRecord(null); setIterateRecord(r); }}
           onDelete={(id) => { handleDelete(id); setLightboxRecord(null); }}
           onFavorite={handleFavorite}
+          onRefreshCollections={handleRefreshCollections}
+        />
+      )}
+
+      {/* Lightbox for Inspiration Ad */}
+      {inspirationLightboxAd && (
+        <InspirationLightbox
+          ad={inspirationLightboxAd}
+          onClose={() => setInspirationLightboxAd(null)}
+          onRefreshCollections={handleRefreshCollections}
         />
       )}
 

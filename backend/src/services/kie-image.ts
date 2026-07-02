@@ -21,9 +21,10 @@ export async function createImageTask(
   publicBaseUrl?: string
 ): Promise<string> {
   // Pass competitor ad URL + brand reference images as image_input
-  const imageInputs: string[] = [ad.imageUrl];
+  const imageInputs: string[] = [];
+  if (ad.imageUrl) imageInputs.push(ad.imageUrl);
   for (const url of (brand.referenceAssetUrls ?? []).slice(0, 3)) {
-    imageInputs.push(url);
+    if (url) imageInputs.push(url);
   }
 
   const body: any = {
@@ -31,11 +32,14 @@ export async function createImageTask(
     input: {
       prompt: brief.image_prompt,
       aspect_ratio: brief.aspect_ratio,
-      image_input: imageInputs,
       resolution: '2K',
       output_format: 'png',
     },
   };
+
+  if (imageInputs.length > 0) {
+    body.input.image_input = imageInputs;
+  }
 
   // Optional webhook callback
   if (publicBaseUrl) {
