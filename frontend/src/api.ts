@@ -30,8 +30,11 @@ export interface StartIterateResponse {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 async function post<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(path, {
+  const url = `${API_BASE}${path}`;
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -46,7 +49,8 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(path);
+  const url = `${API_BASE}${path}`;
+  const res = await fetch(url);
   if (res.status === 404) throw Object.assign(new Error('Not found'), { status: 404 });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
