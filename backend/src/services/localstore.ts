@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
-const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+const uploadsDir = path.join(import.meta.dirname, '..', '..', 'uploads');
 
 /** Download a KIE result URL to local disk and return the permanent local URL */
 export async function uploadFromUrl(remoteUrl: string): Promise<string> {

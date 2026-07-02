@@ -1,4 +1,4 @@
-import type { ImageBrief, AdInput, BrandCtx } from './kie-prompter';
+import type { ImageBrief, AdInput, BrandCtx } from './kie-prompter.js';
 
 
 const KIE_API_KEY = process.env.KIE_API_KEY ?? '';

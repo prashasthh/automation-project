@@ -1,9 +1,9 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
-import { runPrompter, type AdInput, type BrandCtx, type StyleVariant } from '../services/kie-prompter';
-import { createImageTask, pollTaskResult } from '../services/kie-image';
-import { uploadFromUrl } from '../services/localstore';
-import { tasks } from '../services/tasks';
+import { runPrompter, type AdInput, type BrandCtx, type StyleVariant } from '../services/kie-prompter.js';
+import { createImageTask, pollTaskResult } from '../services/kie-image.js';
+import { uploadFromUrl } from '../services/localstore.js';
+import { tasks } from '../services/tasks.js';
 
 // Style variants in the order they are assigned to variations
 const VARIANT_ORDER: StyleVariant[] = ['premium', 'minimal', 'modern', 'bold'];

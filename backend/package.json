@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "AdForge backend — Fastify + Apify + KIE AI",
   "main": "src/index.ts",
+  "type": "module",
   "scripts": {
     "dev": "npx tsx watch src/index.ts",
     "start": "npx tsx src/index.ts"

@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { uploadFromUrl } from '../services/localstore';
-import { tasks } from '../services/tasks';
+import { uploadFromUrl } from '../services/localstore.js';
+import { tasks } from '../services/tasks.js';
 
 const callbackRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/kie-callback — optional KIE webhook

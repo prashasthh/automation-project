@@ -1,8 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
-import { startApifyRun, getRunStatus, fetchDataset } from '../services/apify';
-import { filterAndDedupe } from '../services/filter';
-import { searches } from '../services/tasks';
+import { startApifyRun, getRunStatus, fetchDataset } from '../services/apify.js';
+import { filterAndDedupe } from '../services/filter.js';
+import { searches } from '../services/tasks.js';
 
 const searchesRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/searches — kick off a scrape

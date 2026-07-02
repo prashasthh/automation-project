@@ -7,17 +7,17 @@ import staticPlugin from '@fastify/static';
 import path from 'path';
 import fs from 'fs';
 
-import searchesRoutes from './routes/searches';
-import generateRoutes from './routes/generate';
-import iterateRoutes from './routes/iterate';
-import callbackRoutes from './routes/callback';
-import insightsRoutes from './routes/insights';
-import exportRoutes from './routes/export';
+import searchesRoutes from './routes/searches.js';
+import generateRoutes from './routes/generate.js';
+import iterateRoutes from './routes/iterate.js';
+import callbackRoutes from './routes/callback.js';
+import insightsRoutes from './routes/insights.js';
+import exportRoutes from './routes/export.js';
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 
 // Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, '..', 'uploads');
+const uploadsDir = path.join(import.meta.dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }

@@ -1,9 +1,9 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
-import { createImageTask, pollTaskResult } from '../services/kie-image';
-import { uploadFromUrl } from '../services/localstore';
-import { tasks } from '../services/tasks';
-import type { BrandCtx } from '../services/kie-prompter';
+import { createImageTask, pollTaskResult } from '../services/kie-image.js';
+import { uploadFromUrl } from '../services/localstore.js';
+import { tasks } from '../services/tasks.js';
+import type { BrandCtx } from '../services/kie-prompter.js';
 
 interface IterateBody {
   instruction: string;

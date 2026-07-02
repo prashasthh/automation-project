@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { runInsights } from '../services/kie-insights';
+import { runInsights } from '../services/kie-insights.js';
 
 interface AdInput {
   imageUrl: string;

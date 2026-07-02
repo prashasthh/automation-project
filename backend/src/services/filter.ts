@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
-import { parseApifyItem } from './apify';
-import { dHash, hammingDistance } from './phash';
+import { parseApifyItem } from './apify.js';
+import { dHash, hammingDistance } from './phash.js';
 
 export interface WinningAd {
   id: string;

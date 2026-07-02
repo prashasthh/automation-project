@@ -2,9 +2,9 @@ import type { FastifyPluginAsync } from 'fastify';
 import path from 'path';
 import fs from 'fs';
 import { ZipArchive } from 'archiver';
-import { tasks } from '../services/tasks';
+import { tasks } from '../services/tasks.js';
 
-const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+const uploadsDir = path.join(import.meta.dirname, '..', '..', 'uploads');
 
 const exportRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/export/:generationId — download a ZIP package
