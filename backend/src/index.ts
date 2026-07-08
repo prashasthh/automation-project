@@ -1,5 +1,8 @@
-import dotenv from 'dotenv';
-dotenv.config();
+// Load .env BEFORE any other import. ES module imports are hoisted and evaluated
+// first, so service modules (apify, kie-*) that read process.env at their top level
+// must not be imported until dotenv has populated it. A side-effect import runs in
+// source order, guaranteeing .env is loaded before the imports below evaluate.
+import 'dotenv/config';
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';

@@ -14,7 +14,8 @@ export interface ParsedAd {
   pageName: string;
   imageUrl: string | null;
   isActive: boolean;
-  startDate: string | null;
+  startDate: string | number | null;
+  endDate: string | number | null;
   adCopy: string | null;
   headline: string | null;
   cta: string | null;
@@ -107,6 +108,9 @@ export function parseApifyItem(item: any): ParsedAd {
   const startDate =
     item.startDate ?? item.start_date ?? item.startedRunningAt ??
     item.started_running_at ?? item.ad_delivery_start_time ?? null;
+  const endDate =
+    item.endDate ?? item.end_date ?? item.endedRunningAt ??
+    item.ended_running_at ?? item.ad_delivery_stop_time ?? null;
   const isActive: boolean =
     (item.isActive ?? item.is_active ?? item.active ?? item.status === 'ACTIVE') === true;
 
@@ -152,6 +156,7 @@ export function parseApifyItem(item: any): ParsedAd {
     imageUrl,
     isActive,
     startDate,
+    endDate,
     adCopy,
     headline,
     cta,

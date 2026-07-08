@@ -26,6 +26,28 @@ export interface WinningAd {
  *    sort by daysActive desc, keep top 2.
  * 5. Return final[] sorted by daysActive desc.
  */
+/**
+ * Normalize a timestamp to epoch milliseconds.
+ * Facebook returns dates as Unix timestamps in *seconds* (e.g. 1644134400) or as
+ * date strings ("2022-02-06 08:00:00"). Feeding seconds straight into `new Date()`
+ * treats them as milliseconds and lands in 1970 — hence bogus "20000d running".
+ */
+function toEpochMs(v: string | number | null | undefined): number | null {
+  if (v == null) return null;
+  if (typeof v === 'number') {
+    if (!isFinite(v)) return null;
+    return v < 1e12 ? v * 1000 : v; // < 1e12 ⇒ seconds
+  }
+  const s = String(v).trim();
+  if (s === '') return null;
+  if (/^\d+$/.test(s)) {
+    const n = Number(s);
+    return n < 1e12 ? n * 1000 : n;
+  }
+  const ms = new Date(s).getTime();
+  return isNaN(ms) ? null : ms;
+}
+
 export async function filterAndDedupe(
   rawItems: any[],
   minDays = 0
@@ -44,13 +66,14 @@ export async function filterAndDedupe(
     // Skip obvious non-image types (video), but if no type info just proceed
     if (parsed.creativeType === 'video') continue;
 
-    // Compute daysActive — if no startDate, include with daysActive = 0
+    // Compute daysActive — if no startDate, include with daysActive = 0.
+    // Count up to the ad's end date when it has already stopped, otherwise up to now.
     let daysActive = 0;
-    if (parsed.startDate) {
-      const startMs = new Date(parsed.startDate).getTime();
-      if (!isNaN(startMs)) {
-        daysActive = Math.floor((now - startMs) / 86_400_000);
-      }
+    const startMs = toEpochMs(parsed.startDate);
+    if (startMs != null) {
+      const endMs = toEpochMs(parsed.endDate);
+      const endpoint = endMs != null && endMs < now ? endMs : now;
+      daysActive = Math.max(0, Math.floor((endpoint - startMs) / 86_400_000));
     }
 
     // Skip if below minimum days threshold
