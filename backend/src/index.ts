@@ -35,9 +35,18 @@ const server = Fastify({
 });
 
 async function bootstrap() {
-  // CORS — allow frontend dev server
+  // CORS — always allow the local dev server, plus any origins listed in
+  // FRONTEND_URL (comma-separated) for deployed frontends (e.g. Vercel).
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    ...(process.env.FRONTEND_URL ?? '')
+      .split(',')
+      .map((o) => o.trim().replace(/\/$/, ''))
+      .filter(Boolean),
+  ];
   await server.register(cors, {
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 

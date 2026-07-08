@@ -32,6 +32,10 @@ export async function uploadFromUrl(remoteUrl: string): Promise<string> {
   const buffer = Buffer.from(await res.arrayBuffer());
   fs.writeFileSync(filePath, buffer);
 
-  const port = process.env.PORT ?? '3001';
-  return `http://localhost:${port}/uploads/${filename}`;
+  // In production the browser can't reach the server's localhost, so build the
+  // URL from PUBLIC_BASE_URL (the deployed backend origin) when it is set.
+  const base =
+    process.env.PUBLIC_BASE_URL?.trim().replace(/\/$/, '') ||
+    `http://localhost:${process.env.PORT ?? '3001'}`;
+  return `${base}/uploads/${filename}`;
 }
