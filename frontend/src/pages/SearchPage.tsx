@@ -201,8 +201,12 @@ export default function SearchPage() {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <div className="bg-white border-b border-zinc-100 px-8 py-6">
-        <h1 className="text-xl font-bold font-display text-zinc-900">Find Winning Ads</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">
+        <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.25em] text-indigo-600 mb-2">
+          <span className="w-1.5 h-1.5 bg-[var(--accent)] animate-pulse" />
+          SYS.01 / RECON
+        </div>
+        <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight">Find Winning Ads</h1>
+        <p className="text-sm text-zinc-500 mt-1">
           Paste a Meta Ad Library search URL to find your competitors' best-performing static ads.
         </p>
       </div>

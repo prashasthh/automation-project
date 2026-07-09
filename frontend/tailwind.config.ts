@@ -5,34 +5,35 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-        serif: ['"Playfair Display"', 'Georgia', 'serif'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        // Trace0 aesthetic — Orbitron for display, Sarpanch for body, mono for technical labels
+        display: ['Orbitron', 'system-ui', 'sans-serif'],
+        serif: ['Sarpanch', 'system-ui', 'sans-serif'],
+        sans: ['Sarpanch', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
       colors: {
-        // Anti-gravity dark palette
-        void:  { DEFAULT: '#000000', 50: '#0A0A0A', 100: '#111111', 200: '#1A1A1A', 300: '#222222' },
-        surface: { DEFAULT: 'rgba(20,20,28,0.85)', card: 'rgba(18,18,26,0.75)', modal: 'rgba(14,14,20,0.95)' },
-        neon:  { violet: '#7C3AED', purple: '#6B46C1', glow: 'rgba(124,58,237,0.35)', soft: 'rgba(124,58,237,0.12)' },
+        // Trace0 dark palette
+        void:  { DEFAULT: '#000000', 50: '#050505', 100: '#0a0a0a', 200: '#141414', 300: '#1e1e1e' },
+        surface: { DEFAULT: 'rgba(20,20,20,0.55)', card: 'rgba(15,15,15,0.5)', modal: 'rgba(8,8,8,0.96)' },
+        neon:  { violet: '#FF5F1F', purple: '#CC4C18', glow: 'rgba(255,95,31,0.35)', soft: 'rgba(255,95,31,0.10)' },
         silver: { DEFAULT: '#A3A3A3', dim: '#6B6B6B', bright: '#D4D4D4' },
         brand: {
-          50:  '#ede9fe',
-          100: '#ddd6fe',
-          200: '#c4b5fd',
-          500: '#7C3AED',
-          600: '#6B46C1',
-          700: '#5B21B6',
+          50:  '#fff0e9',
+          100: '#ffd9c7',
+          200: '#ffb695',
+          500: '#FF5F1F',
+          600: '#E6551C',
+          700: '#CC4C18',
         },
       },
       boxShadow: {
         card:         '0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04)',
         'card-hover': '0 4px 16px 0 rgb(0 0 0 / 0.08), 0 1px 4px -1px rgb(0 0 0 / 0.04)',
-        // Anti-gravity hover glow
-        float:   '0 0 0 1px #2a2a2a, 0 8px 32px rgba(124,58,237,0.18)',
-        'float-hover': '0 0 0 1px #333, 0 16px 48px rgba(124,58,237,0.28), 0 4px 16px rgba(0,0,0,0.6)',
-        'neon-violet': '0 0 20px rgba(124,58,237,0.45)',
-        premium: '0 20px 40px -10px rgb(0 0 0 / 0.8), 0 0 0 1px rgba(124,58,237,0.2)',
+        // Trace0 hover glow
+        float:   '0 0 0 1px #1e1e1e, 0 8px 32px rgba(0,0,0,0.5)',
+        'float-hover': '0 0 0 1px #333, 0 16px 48px rgba(255,95,31,0.18), 0 4px 16px rgba(0,0,0,0.6)',
+        'neon-violet': '0 0 20px rgba(255,95,31,0.45)',
+        premium: '0 20px 40px -10px rgb(0 0 0 / 0.8), 0 0 0 1px rgba(255,95,31,0.2)',
       },
       animation: {
         'spin-slow':   'spin 2s linear infinite',
@@ -46,7 +47,7 @@ const config: Config = {
         fadeIn:     { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
         slideUp:    { '0%': { opacity: '0', transform: 'translateY(8px)'  }, '100%': { opacity: '1', transform: 'translateY(0)' } },
         floatIn:    { '0%': { opacity: '0', transform: 'translateY(20px) scale(0.97)' }, '100%': { opacity: '1', transform: 'translateY(0) scale(1)' } },
-        pulseGlow:  { '0%,100%': { boxShadow: '0 0 0 0 rgba(124,58,237,0)' }, '50%': { boxShadow: '0 0 24px 4px rgba(124,58,237,0.25)' } },
+        pulseGlow:  { '0%,100%': { boxShadow: '0 0 0 0 rgba(255,95,31,0)' }, '50%': { boxShadow: '0 0 24px 4px rgba(255,95,31,0.25)' } },
       },
       backdropBlur: { xs: '2px' },
       backgroundImage: {

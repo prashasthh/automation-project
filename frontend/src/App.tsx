@@ -9,72 +9,121 @@ import BrandPage from './pages/BrandPage';
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
+// Monochrome line icons (Trace0 technical aesthetic)
+const icons = {
+  find: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="w-[18px] h-[18px]">
+      <circle cx="11" cy="11" r="7" /><path strokeLinecap="round" d="M21 21l-4-4M11 8v6M8 11h6" />
+    </svg>
+  ),
+  queue: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="w-[18px] h-[18px]">
+      <circle cx="12" cy="12" r="8.5" /><path strokeLinecap="round" d="M12 7.5V12l3 2" />
+    </svg>
+  ),
+  library: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="w-[18px] h-[18px]">
+      <rect x="3.5" y="3.5" width="7" height="7" /><rect x="13.5" y="3.5" width="7" height="7" />
+      <rect x="3.5" y="13.5" width="7" height="7" /><rect x="13.5" y="13.5" width="7" height="7" />
+    </svg>
+  ),
+  brand: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="w-[18px] h-[18px]">
+      <path strokeLinejoin="round" d="M4 4h8l8 8-8 8-8-8V4z" /><circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+};
+
 function Sidebar() {
   const { activeCount } = useGeneration();
 
   const navItemClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+    `group relative flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium tracking-wide uppercase transition-colors duration-200 ${
       isActive
-        ? 'bg-indigo-50 text-indigo-700'
-        : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800'
+        ? 'text-[var(--accent)] bg-[rgba(255,95,31,0.06)]'
+        : 'text-zinc-500 hover:text-zinc-200'
     }`;
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-56 bg-white border-r border-zinc-100 flex flex-col z-30">
+    <aside className="fixed left-0 top-0 h-screen w-56 bg-[#050505] border-r border-[var(--border)] flex flex-col z-30 backdrop-blur-xl">
       {/* Logo */}
-      <div className="px-4 py-5 border-b border-zinc-100">
+      <div className="px-4 py-5 border-b border-[var(--border)]">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <div className="w-8 h-8 bg-[var(--accent)] flex items-center justify-center flex-shrink-0 shadow-[0_0_16px_rgba(255,95,31,0.4)]">
+            <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <span className="font-display font-800 text-zinc-900 text-[15px] tracking-tight font-extrabold">
+          <span className="font-display text-[15px] tracking-tight font-semibold text-[var(--fg)]">
             AdForge
           </span>
+        </div>
+        <div className="mt-2.5 flex items-center gap-2 text-[9px] uppercase tracking-[0.2em] text-zinc-600 font-mono">
+          <span className="w-1 h-1 bg-[var(--accent)] animate-pulse" />
+          System.Online
         </div>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        <p className="px-3 pt-1 pb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 font-display">
-          Workspace
+        <p className="px-3 pt-1 pb-2 text-[9px] font-medium uppercase tracking-[0.2em] text-zinc-600 font-mono">
+          SYS.01 / Workspace
         </p>
 
         <NavLink to="/" end className={navItemClass} id="nav-find-ads">
-          <span className="text-base">🔍</span>
-          <span>Find Ads</span>
+          {({ isActive }) => (
+            <>
+              <span className={`absolute left-0 top-0 h-full w-[2px] bg-[var(--accent)] transition-transform origin-top ${isActive ? 'scale-y-100' : 'scale-y-0'}`} />
+              {icons.find}
+              <span>Find Ads</span>
+            </>
+          )}
         </NavLink>
 
         <NavLink to="/queue" className={navItemClass} id="nav-queue">
-          <span className="text-base">⏱</span>
-          <span className="flex-1">Queue</span>
-          {activeCount > 0 && (
-            <span className="bg-indigo-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
-              {activeCount}
-            </span>
+          {({ isActive }) => (
+            <>
+              <span className={`absolute left-0 top-0 h-full w-[2px] bg-[var(--accent)] transition-transform origin-top ${isActive ? 'scale-y-100' : 'scale-y-0'}`} />
+              {icons.queue}
+              <span className="flex-1">Queue</span>
+              {activeCount > 0 && (
+                <span className="bg-[var(--accent)] text-black text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
+                  {activeCount}
+                </span>
+              )}
+            </>
           )}
         </NavLink>
 
         <NavLink to="/library" className={navItemClass} id="nav-library">
-          <span className="text-base">📚</span>
-          <span>Library</span>
+          {({ isActive }) => (
+            <>
+              <span className={`absolute left-0 top-0 h-full w-[2px] bg-[var(--accent)] transition-transform origin-top ${isActive ? 'scale-y-100' : 'scale-y-0'}`} />
+              {icons.library}
+              <span>Library</span>
+            </>
+          )}
         </NavLink>
 
         <div className="pt-4">
-          <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 font-display">
-            Settings
+          <p className="px-3 pb-2 text-[9px] font-medium uppercase tracking-[0.2em] text-zinc-600 font-mono">
+            SYS.02 / Settings
           </p>
           <NavLink to="/brand" className={navItemClass} id="nav-brand">
-            <span className="text-base">🏷</span>
-            <span>Brand</span>
+            {({ isActive }) => (
+              <>
+                <span className={`absolute left-0 top-0 h-full w-[2px] bg-[var(--accent)] transition-transform origin-top ${isActive ? 'scale-y-100' : 'scale-y-0'}`} />
+                {icons.brand}
+                <span>Brand</span>
+              </>
+            )}
           </NavLink>
         </div>
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-zinc-100">
-        <p className="text-[11px] text-zinc-400 font-mono">v1.0.0 · local-first</p>
+      <div className="px-4 py-3 border-t border-[var(--border)]">
+        <p className="text-[10px] text-zinc-600 font-mono uppercase tracking-widest">v1.0.0 · local-first</p>
       </div>
     </aside>
   );
