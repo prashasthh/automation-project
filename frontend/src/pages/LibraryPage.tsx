@@ -325,6 +325,12 @@ function Lightbox({ record, onClose, onIterate, onDelete, onFavorite, onRefreshC
                   src={record.sourceMeta!.imageUrl}
                   alt="Competitor inspiration ad"
                   className="w-full rounded-xl border border-zinc-100 shadow-card"
+                  onError={(e) => {
+                    const t = e.currentTarget;
+                    t.onerror = null;
+                    t.src =
+                      "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' fill='%230a0a0a'/><text x='60' y='56' font-size='7' fill='%23FF5F1F' text-anchor='middle' font-family='monospace'>SOURCE</text><text x='60' y='70' font-size='7' fill='%236b6b6b' text-anchor='middle' font-family='monospace'>EXPIRED</text></svg>";
+                  }}
                 />
               </div>
               <div className="flex-shrink-0 flex items-center self-center mt-6">
@@ -453,9 +459,15 @@ function InspirationLightbox({ ad, onClose, onRefreshCollections }: { ad: Winnin
 
         <div className="p-6">
            <img
-             src={ad.imageUrl}
+             src={ad.displayImageUrl || ad.imageUrl}
              alt="Competitor inspiration ad"
              className="w-full rounded-xl border border-zinc-100 shadow-card mb-6"
+             onError={(e) => {
+               const t = e.currentTarget;
+               t.onerror = null;
+               t.src =
+                 "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' fill='%230a0a0a'/><text x='60' y='56' font-size='7' fill='%23FF5F1F' text-anchor='middle' font-family='monospace'>SOURCE</text><text x='60' y='70' font-size='7' fill='%236b6b6b' text-anchor='middle' font-family='monospace'>EXPIRED</text></svg>";
+             }}
            />
            <div className="space-y-4 bg-zinc-50 p-4 rounded-xl border border-zinc-100">
              <div>

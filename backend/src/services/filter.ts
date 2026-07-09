@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { parseApifyItem } from './apify.js';
-import { dHash, hammingDistance } from './phash.js';
+import { dHashFromBuffer, hammingDistance } from './phash.js';
+import { saveImageBuffer } from './localstore.js';
 
 export interface WinningAd {
   id: string;
@@ -8,10 +9,20 @@ export interface WinningAd {
   advertiserId: string;
   advertiserName: string;
   imageUrl: string;
+  /** Local cached copy of the source image (permanent) — used for display. */
+  displayImageUrl?: string;
   daysActive: number;
   adCopy: string | null;
   headline: string | null;
   cta: string | null;
+}
+
+/** Best-effort file extension from an image URL (defaults to jpg). */
+function extFromUrl(url: string): string {
+  const m = url.split('?')[0].match(/\.(jpe?g|png|webp)$/i);
+  if (!m) return 'jpg';
+  const e = m[1].toLowerCase();
+  return e === 'jpeg' ? 'jpg' : e;
 }
 
 /**
@@ -108,27 +119,50 @@ export async function filterAndDedupe(
     // Sort by daysActive descending
     group.sort((a, b) => b.daysActive - a.daysActive);
 
-    // Dedupe by perceptual hash (Hamming distance < 10 = same creative)
+    // Dedupe by perceptual hash (Hamming distance < 10 = same creative).
+    // Fetch each image once and reuse the buffer for both hashing and caching.
     const hashes: bigint[] = [];
-    const deduped: WinningAd[] = [];
+    const deduped: { ad: WinningAd; buffer: Buffer | null; ext: string }[] = [];
 
     for (const ad of group) {
+      let buffer: Buffer | null = null;
       try {
-        const h = await dHash(ad.imageUrl);
-        const isDupe = hashes.some((existing) => hammingDistance(existing, h) < 10);
-        if (!isDupe) {
-          hashes.push(h);
-          deduped.push(ad);
-        }
+        const res = await fetch(ad.imageUrl, { signal: AbortSignal.timeout(10_000) });
+        if (res.ok) buffer = Buffer.from(await res.arrayBuffer());
       } catch {
-        // If hash fails, include the ad anyway
-        deduped.push(ad);
+        /* image unreachable — keep the ad, skip dedup + caching */
       }
+
+      if (!buffer) {
+        deduped.push({ ad, buffer: null, ext: 'jpg' });
+        continue;
+      }
+
+      let h: bigint;
+      try {
+        h = await dHashFromBuffer(buffer);
+      } catch {
+        deduped.push({ ad, buffer, ext: extFromUrl(ad.imageUrl) });
+        continue;
+      }
+
+      if (hashes.some((existing) => hammingDistance(existing, h) < 10)) continue; // dupe
+      hashes.push(h);
+      deduped.push({ ad, buffer, ext: extFromUrl(ad.imageUrl) });
     }
 
-    // Keep top 2 per advertiser (deduped)
-    const top = deduped.slice(0, 2);
-    final.push(...top);
+    // Keep top 2 per advertiser and cache their source image locally so it
+    // survives Facebook's ~4-day CDN URL expiry (used for display).
+    for (const { ad, buffer, ext } of deduped.slice(0, 2)) {
+      if (buffer) {
+        try {
+          ad.displayImageUrl = saveImageBuffer(buffer, ext);
+        } catch {
+          /* leave undefined → frontend falls back to imageUrl */
+        }
+      }
+      final.push(ad);
+    }
   }
 
   // Sort final list by daysActive descending

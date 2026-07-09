@@ -51,6 +51,8 @@ export interface WinningAd {
   advertiserId: string;
   advertiserName: string;
   imageUrl: string;
+  /** Local cached copy of the source image (permanent); falls back to imageUrl. */
+  displayImageUrl?: string;
   daysActive: number;
   adCopy: string | null;
   headline: string | null;

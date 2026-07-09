@@ -21,7 +21,7 @@ export default function AdCard({ ad, selected, onSelect }: AdCardProps) {
       {/* Image */}
       <div className="aspect-square bg-zinc-100 relative overflow-hidden">
         <img
-          src={ad.imageUrl}
+          src={ad.displayImageUrl || ad.imageUrl}
           alt={`Ad by ${ad.advertiserName}`}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"

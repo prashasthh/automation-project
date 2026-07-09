@@ -5,6 +5,24 @@ import { v4 as uuidv4 } from 'uuid';
 
 const uploadsDir = path.join(import.meta.dirname, '..', '..', 'uploads');
 
+/** Public origin the browser (and KIE) can reach: deployed backend URL, else localhost. */
+export function baseUrl(): string {
+  return (
+    process.env.PUBLIC_BASE_URL?.trim().replace(/\/$/, '') ||
+    `http://localhost:${process.env.PORT ?? '3001'}`
+  );
+}
+
+/** Persist an in-memory image buffer to /uploads and return its permanent URL. */
+export function saveImageBuffer(buffer: Buffer, ext = 'jpg'): string {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  const filename = `src-${uuidv4()}.${ext}`;
+  fs.writeFileSync(path.join(uploadsDir, filename), buffer);
+  return `${baseUrl()}/uploads/${filename}`;
+}
+
 /** Download a KIE result URL to local disk and return the permanent local URL */
 export async function uploadFromUrl(remoteUrl: string): Promise<string> {
   const res = await fetch(remoteUrl, { signal: AbortSignal.timeout(30_000) });
@@ -34,8 +52,5 @@ export async function uploadFromUrl(remoteUrl: string): Promise<string> {
 
   // In production the browser can't reach the server's localhost, so build the
   // URL from PUBLIC_BASE_URL (the deployed backend origin) when it is set.
-  const base =
-    process.env.PUBLIC_BASE_URL?.trim().replace(/\/$/, '') ||
-    `http://localhost:${process.env.PORT ?? '3001'}`;
-  return `${base}/uploads/${filename}`;
+  return `${baseUrl()}/uploads/${filename}`;
 }

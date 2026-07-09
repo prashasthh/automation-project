@@ -173,7 +173,7 @@ export default function SearchPage() {
       startBatchPolling(generationIds, selectedAd.id, {
         advertiserName: selectedAd.advertiserName,
         daysActive: selectedAd.daysActive,
-        imageUrl: selectedAd.imageUrl,
+        imageUrl: selectedAd.displayImageUrl || selectedAd.imageUrl,
       });
 
       navigate('/queue');
